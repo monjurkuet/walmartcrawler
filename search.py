@@ -26,8 +26,8 @@ def ExtractData(driver):
    logs_raw = driver.get_log("performance")     
    logs = [json.loads(lr["message"])["message"] for lr in logs_raw]
    response_json=clean_logs(driver,logs,SEARCH_API_URL)
-   searchResults=response_json['searchResults']['jobs']
-   for eachJob in searchResults:
+   searchResults=response_json['data']['search']['searchResult']['itemStacks'][0]['itemsV2']
+   for eachProduct in searchResults:
       title=eachJob['title']
       createdOn=eachJob['createdOn']
       amount=eachJob['amount']['amount']
@@ -50,8 +50,8 @@ def ExtractData(driver):
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 
-SEARCH_URL='https://www.upwork.com/nx/jobs/search/?sort=recency&or_terms=scrape%20crawl'
-SEARCH_API_URL='https://www.upwork.com/search/jobs/url'
+SEARCH_URL='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261?affinityOverride=default'
+SEARCH_API_URL='https://www.walmart.com/orchestra/snb/graphql/Browse/'
 
 while True:
    driver=GetDriver()
