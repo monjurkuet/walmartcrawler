@@ -28,51 +28,31 @@ def ExtractData(driver):
    response_json=clean_logs(driver,logs,SEARCH_API_URL)
    searchResults=response_json['data']['search']['searchResult']['itemStacks'][0]['itemsV2']
    for eachProduct in searchResults:
-      title=eachJob['title']
-      createdOn=eachJob['createdOn']
-      amount=eachJob['amount']['amount']
-      skillList=', '.join(i['prettyName'] for i in eachJob['attrs'])
-      description=eachJob['description']
-      hourlyBudget=f"{eachJob['hourlyBudget']['min']}-{eachJob['hourlyBudget']['max']}"
-      duration=eachJob['duration']
-      engagement=eachJob['engagement']
-      enterpriseJob=eachJob['enterpriseJob']
-      category=f"{eachJob['occupations']['category']['prefLabel']}, {eachJob['occupations']['oservice']['prefLabel']}, {', '.join(i['prefLabel'] for i in eachJob['occupations']['subcategories'])}"
-      ciphertext=eachJob['ciphertext']
-      # Insert the data into the "PostedJobs" table
-      cursor.execute('''INSERT OR IGNORE INTO PostedJobs (title, createdOn, amount, skillList, description, hourlyBudget, duration, engagement, enterpriseJob, category, ciphertext)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                     (title, createdOn, amount, skillList, description, hourlyBudget, duration, engagement, enterpriseJob, category, ciphertext))
-      print(title, createdOn, amount, skillList, hourlyBudget, duration, engagement)
+      if eachProduct['__typename']!='AdPlaceholder':
+         Source_Link=SEARCH_URL
+         Title=eachProduct['name']
+         Original_Price=None
+         if eachProduct['priceInfo']['listPrice'] is not None:
+            Original_Price=eachProduct['priceInfo']['listPrice']['price']
+         Current_Price=eachProduct['priceInfo']['currentPrice']['price']
+         Product_Link='https://www.walmart.com'+eachProduct['canonicalUrl']
+         Image_Link=eachProduct['imageInfo']['thumbnailUrl'].split('?')[0]
+         Category=eachProduct['category']
+         # Insert the data into the "PostedJobs" table
+         cursor.execute('''INSERT OR IGNORE INTO PostedJobs (title, createdOn, amount, skillList, description, hourlyBudget, duration, engagement, enterpriseJob, category, ciphertext)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                        (title, createdOn, amount, skillList, description, hourlyBudget, duration, engagement, enterpriseJob, category, ciphertext))
+         print(title, createdOn, amount, skillList, hourlyBudget, duration, engagement)
    driver.get_log("performance")  
    conn.commit()
 
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
-
+conn.close()
 SEARCH_URL='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261?affinityOverride=default'
 SEARCH_API_URL='https://www.walmart.com/orchestra/snb/graphql/Browse/'
 
-while True:
-   driver=GetDriver()
-   driver.set_window_position(-2000,0)
-   for i in range(1,5):
-      try:
-         driver.get(SEARCH_URL+f'&page={i}')
-         print(f'Crawling : {SEARCH_URL}+&page={i}')
-         time.sleep(5)
-         if i==1:
-            driver.find_element('xpath','//div[@class="up-dropdown jobs-per-page"]').click()
-            time.sleep(5)
-            driver.find_elements('xpath','//div[@class="up-dropdown-menu"]//li')[-1].click()
-            time.sleep(5)
-         ExtractData(driver)
-         time.sleep(5)
-      except Exception as e:
-         print(e)
-         input('Enter to continue.....')
-   print('Sleeping........')
-   driver.quit()
-   time.sleep(300)
-
-conn.close()
+driver=GetDriver()
+driver.set_window_position(-2000,0)
+driver.get(SEARCH_URL)
+ExtractData(driver)
