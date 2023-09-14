@@ -22,13 +22,13 @@ def clean_logs(driver,logs,target_url):
          pass   
    return None
 
-def ExtractData(driver):
+def ExtractData(driver,SEARCH_URL):
    logs_raw = driver.get_log("performance")     
    logs = [json.loads(lr["message"])["message"] for lr in logs_raw]
    response_json=clean_logs(driver,logs,SEARCH_API_URL)
    searchResults=response_json['data']['search']['searchResult']['itemStacks'][0]['itemsV2']
    for eachProduct in searchResults:
-      if eachProduct['__typename']!='AdPlaceholder':
+      if eachProduct['__typename']=='Product':
          Source_Link=SEARCH_URL
          Title=eachProduct['name']
          Original_Price=None
@@ -37,22 +37,24 @@ def ExtractData(driver):
          Current_Price=eachProduct['priceInfo']['currentPrice']['price']
          Product_Link='https://www.walmart.com'+eachProduct['canonicalUrl']
          Image_Link=eachProduct['imageInfo']['thumbnailUrl'].split('?')[0]
-         Category=eachProduct['category']
-         # Insert the data into the "PostedJobs" table
-         cursor.execute('''INSERT OR IGNORE INTO PostedJobs (title, createdOn, amount, skillList, description, hourlyBudget, duration, engagement, enterpriseJob, category, ciphertext)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                        (title, createdOn, amount, skillList, description, hourlyBudget, duration, engagement, enterpriseJob, category, ciphertext))
-         print(title, createdOn, amount, skillList, hourlyBudget, duration, engagement)
+         # Insert the data into the "productlist" table
+         cursor.execute('''INSERT OR IGNORE INTO productlist (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link)
+                  VALUES (?, ?, ?, ?, ?, ?)''',
+                  (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link))
+         print(Title,Current_Price)
    driver.get_log("performance")  
    conn.commit()
 
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
-conn.close()
-SEARCH_URL='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261?affinityOverride=default'
+
+SEARCH_URL1='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261'+'?sort=best_seller&facet=retailer_type%3AWalmart'
+SEARCH_URL2='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261'+'?sort=best_match&facet=retailer_type%3AWalmart'
 SEARCH_API_URL='https://www.walmart.com/orchestra/snb/graphql/Browse/'
 
 driver=GetDriver()
 driver.set_window_position(-2000,0)
 driver.get(SEARCH_URL)
-ExtractData(driver)
+ExtractData(driver,SEARCH_URL2)
+
+conn.close()
