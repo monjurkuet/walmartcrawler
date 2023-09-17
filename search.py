@@ -34,7 +34,9 @@ def ExtractData(driver,SEARCH_URL):
          Original_Price=None
          if eachProduct['priceInfo']['listPrice'] is not None:
             Original_Price=eachProduct['priceInfo']['listPrice']['price']
-         Current_Price=eachProduct['priceInfo']['currentPrice']['price']
+         Current_Price=None
+         if eachProduct['priceInfo']['currentPrice'] is not None:
+            Current_Price=eachProduct['priceInfo']['currentPrice']['price']
          Product_Link='https://www.walmart.com'+eachProduct['canonicalUrl']
          Image_Link=eachProduct['imageInfo']['thumbnailUrl'].split('?')[0]
          # Insert the data into the "productlist" table
@@ -48,13 +50,12 @@ def ExtractData(driver,SEARCH_URL):
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 
-SEARCH_URL1='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261'+'?sort=best_seller&facet=retailer_type%3AWalmart'
-SEARCH_URL2='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261'+'?sort=best_match&facet=retailer_type%3AWalmart'
+SEARCH_URL='https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261'+'?sort=best_seller&facet=retailer_type%3AWalmart'
 SEARCH_API_URL='https://www.walmart.com/orchestra/snb/graphql/Browse/'
 
 driver=GetDriver()
 driver.set_window_position(-2000,0)
 driver.get(SEARCH_URL)
-ExtractData(driver,SEARCH_URL2)
+ExtractData(driver,SEARCH_URL)
 
 conn.close()

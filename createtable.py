@@ -4,24 +4,22 @@ import sqlite3
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 
-# Check if the table "productlist" already exists
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='productlist'")
-table_exists = cursor.fetchone()
+# Define the CREATE TABLE statement
+create_table_sql = """
+CREATE TABLE IF NOT EXISTS "productlist" (
+    "Source_Link"    TEXT,
+    "Title"    TEXT,
+    "Original_Price"    TEXT,
+    "Current_Price"    TEXT,
+    "Product_Link"    TEXT UNIQUE,
+    "Image_Link"    TEXT,
+    "timestamp"    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY("Product_Link")
+);
+"""
 
-if not table_exists:
-    # The table does not exist, so create it
-    cursor.execute('''
-    CREATE TABLE "productlist" (
-        "Source_Link" TEXT,
-        "Title" TEXT,
-        "Original_Price" TEXT,
-        "Current_Price" TEXT,
-        "Product_Link" TEXT UNIQUE,
-        "Image_Link" TEXT,
-        PRIMARY KEY("Product_Link")
-    )''')
-    # Commit the changes
-    conn.commit()
-
+# Execute the CREATE TABLE statement
+cursor.execute(create_table_sql)
+conn.commit()
 # Close the connection
 conn.close()
