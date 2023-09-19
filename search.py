@@ -5,6 +5,7 @@ import time
 
 def GetDriver():
    options = uc.ChromeOptions() 
+   options.add_argument('--proxy-server=127.0.0.1:24000')
    caps = options.to_capabilities()
    caps['goog:loggingPrefs'] = {'performance': 'ALL'} 
    return uc.Chrome(headless=False,options=options,desired_capabilities=caps) 
