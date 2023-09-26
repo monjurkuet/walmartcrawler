@@ -14,7 +14,7 @@ from tqdm import tqdm
 def samelineprint(msg):
    LINE_FLUSH = '\r\033[K'
    UP_FRONT_LINE = '\033[F'
-   return(UP_FRONT_LINE + LINE_FLUSH + str(msg))
+   print(UP_FRONT_LINE + LINE_FLUSH + str(msg))
 
 # Constants for file paths
 #BROWSER_EXECUTABLE_PATH_WINDOWS = 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
@@ -56,7 +56,7 @@ def extract_products(driver,Source_Link):
         cursor.execute('''REPLACE INTO productlist (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link,productid)
                     VALUES (?, ?, ?, ?, ?, ?, ?)''',
                     (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link,productid))
-        samelineprint(Title,Current_Price)
+        samelineprint(Title+' '+productid)
     conn.commit()
 
 def solve_blocked(browser):
@@ -65,11 +65,11 @@ def solve_blocked(browser):
         # Wait for the px-captcha element styles to fully load
         time.sleep(0.5)
     except BaseException as e:
-        print(f'px-captcha element not found')
+        samelineprint(f'px-captcha element not found')
         return
-    print(f'solve blocked:{browser.current_url}')
+    samelineprint(f'solve blocked:{browser.current_url}')
     if  element:
-        print(f'start press and hold')
+        samelineprint(f'start press and hold')
         ActionChains(browser).click_and_hold(element).perform()
         start_time = time.time()
         while 1:
@@ -79,30 +79,40 @@ def solve_blocked(browser):
             time.sleep(0.1)
     time.sleep(1)
 
+def check_captcha(driver,url):
+    captchapresence=len(driver.find_elements(By.ID,'px-captcha'))
+    if not captchapresence:
+        return
+    solve_blocked(driver)
+    time.sleep(5)
+    driver.get(url)
+    time.sleep(5)
+    check_captcha(driver,url)
+
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 
 with open('categories.txt') as f:
     categories = f.read().splitlines()
 
-driver=new_browser()
-
-
-solve_blocked(driver)
-
-conn.close()
+#driver=new_browser()
 
 for category_url in tqdm(categories[1:]):
-    driver=new_browser()
+    #driver=new_browser()
     category_url=category_url.rstrip('/')
     samelineprint(f'Crawling : {category_url}')
-    driver.get(f'{category_url}'+'?sort=best_seller&facet=retailer_type%3AWalmart')
+    searchurl=f'{category_url}'+'?sort=best_seller&facet=retailer_type%3AWalmart'
+    driver.get(searchurl)
+    check_captcha(driver,searchurl)
     last_page=int(driver.find_elements(By.XPATH,'//nav[@aria-label="pagination"]//li')[-2].text)
     for PAGE in tqdm(range(1,last_page+1)):
-        SEARCH_BASE_URL=f'{category_url}'+'?sort=best_seller&facet=retailer_type%3AWalmart'+'&page={PAGE}'
+        SEARCH_BASE_URL=f'{category_url}'+'?sort=best_seller&facet=retailer_type%3AWalmart'+'&page='+str(PAGE)
         BASE_URL=SEARCH_BASE_URL.format(PAGE=PAGE,category_url=category_url)
         samelineprint(f'Crawling : {BASE_URL}')
-        driver.get(BASE_URL.format(PAGE=PAGE))
+        driver.get(BASE_URL)
+        check_captcha(driver,BASE_URL)
         extract_products(driver,BASE_URL)
         time.sleep(5)
     driver.quit()
+
+conn.close()
