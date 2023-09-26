@@ -71,8 +71,6 @@ def check_captcha(driver,url):
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 
-driver=new_browser()
-
 pattern = r'"upc":"(.*?)"'
 categorypattern = r'"categoryName":"(.*?)"'
 
@@ -80,6 +78,8 @@ categorypattern = r'"categoryName":"(.*?)"'
 cursor.execute("SELECT Product_Link,productid FROM productlist WHERE productid NOT IN (SELECT productid FROM productdetails)")
 # Fetch all the rows
 rows = [{'Product_Link':i[0],'productid':i[1]} for i in cursor.fetchall()]
+
+driver=new_browser()
 
 for data in tqdm(rows):
    Product_Link=data['Product_Link']
