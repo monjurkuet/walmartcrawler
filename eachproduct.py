@@ -3,6 +3,11 @@ import sqlite3
 import time
 import re
 
+def samelineprint(msg):
+   LINE_FLUSH = '\r\033[K'
+   UP_FRONT_LINE = '\033[F'
+   return(UP_FRONT_LINE + LINE_FLUSH + str(msg))
+
 def GetDriver():
    options = uc.ChromeOptions() 
    caps = options.to_capabilities()

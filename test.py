@@ -11,11 +11,6 @@ import platform
 import re
 from tqdm import tqdm
 
-def samelineprint(msg):
-   LINE_FLUSH = '\r\033[K'
-   UP_FRONT_LINE = '\033[F'
-   return(UP_FRONT_LINE + LINE_FLUSH + str(msg))
-
 # Constants for file paths
 #BROWSER_EXECUTABLE_PATH_WINDOWS = 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
 BROWSER_EXECUTABLE_PATH_WINDOWS = "C:\\Users\\muham\\AppData\\Local\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
@@ -37,26 +32,24 @@ def new_browser():
     )
     return driver
 
-def extract_products(driver,Source_Link):
+def extract_products(driver):
     all_products=driver.find_elements(By.XPATH,'//div[@data-item-id and @role="group"]')
     for product in all_products:
         Product_Link=product.find_element(By.XPATH,'.//a[@link-identifier]').get_attribute('href').split('?')[0]
         Title=product.find_element(By.XPATH,'.//span[@data-automation-id="product-title"]').text
-        try:
-            Current_Price=product.find_element(By.XPATH,'.//span[contains(text(),"current price")]').text
-            Current_Price=re.search("\$[0-9]+(\.[0-9]+)?",Current_Price)[0]
-        except:
-            Current_Price=None
+        Current_Price=product.find_element(By.XPATH,'.//span[contains(text(),"current price")]').text
+        Current_Price=re.search("\$[0-9]+(\.[0-9]+)?",Current_Price)[0]
         try:
             Original_Price=product.find_element(By.XPATH,'.//span[contains(text(),"Was $")]').text.split(' ')[-1]
         except:
             Original_Price=None
+        print(Original_Price)
+        Source_Link=SEARCH_URL
         Image_Link=product.find_element(By.XPATH,'.//img').get_attribute('src').split('?')[0]
-        productid=product.find_element(By.XPATH,'.//a[@link-identifier]').get_attribute('link-identifier')
-        cursor.execute('''REPLACE INTO productlist (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link,productid)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                    (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link,productid))
-        samelineprint(Title,Current_Price)
+        cursor.execute('''REPLACE INTO productlist (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link)
+                    VALUES (?, ?, ?, ?, ?, ?)''',
+                    (Source_Link, Title, Original_Price, Current_Price, Product_Link, Image_Link))
+        print(Title,Current_Price)
     conn.commit()
 
 def solve_blocked(browser):
@@ -82,27 +75,18 @@ def solve_blocked(browser):
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 
-with open('categories.txt') as f:
-    categories = f.read().splitlines()
+SEARCH_URL=f'https://www.walmart.com/browse/party-occasions/character-party-supplies/2637_8253261'+'?sort=best_seller&facet=retailer_type%3AWalmart'+'&page={PAGE}'
 
 driver=new_browser()
+PAGE=1
+driver.get(SEARCH_URL.format(PAGE=PAGE))
+last_page=int(driver.find_elements(By.XPATH,'//nav[@aria-label="pagination"]//li')[-2].text)
 
+for PAGE in tqdm(range(1,last_page+1)):
+    driver.get(SEARCH_URL.format(PAGE=PAGE))
+    extract_products(driver)
+    time.sleep(5)
 
 solve_blocked(driver)
 
 conn.close()
-
-for category_url in tqdm(categories[1:]):
-    driver=new_browser()
-    category_url=category_url.rstrip('/')
-    samelineprint(f'Crawling : {category_url}')
-    driver.get(f'{category_url}'+'?sort=best_seller&facet=retailer_type%3AWalmart')
-    last_page=int(driver.find_elements(By.XPATH,'//nav[@aria-label="pagination"]//li')[-2].text)
-    for PAGE in tqdm(range(1,last_page+1)):
-        SEARCH_BASE_URL=f'{category_url}'+'?sort=best_seller&facet=retailer_type%3AWalmart'+'&page={PAGE}'
-        BASE_URL=SEARCH_BASE_URL.format(PAGE=PAGE,category_url=category_url)
-        samelineprint(f'Crawling : {BASE_URL}')
-        driver.get(BASE_URL.format(PAGE=PAGE))
-        extract_products(driver,BASE_URL)
-        time.sleep(5)
-    driver.quit()
